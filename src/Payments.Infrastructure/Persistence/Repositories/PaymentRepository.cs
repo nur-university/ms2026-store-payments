@@ -23,4 +23,9 @@ internal class PaymentRepository(DomainDbContext context) : IPaymentRepository
             return _context.Payments.FirstOrDefaultAsync(o => o.Id == id);
         }
     }
+
+    public Task<Payment?> GetBySourceAsync(Guid sourceId, string sourceType)
+    {
+        return _context.Payments.FirstOrDefaultAsync(p => p.SourceId == sourceId && p.SourceType == sourceType);
+    }
 }

@@ -32,6 +32,17 @@ public class Payment : AggregateRoot
             throw new InvalidOperationException("Payment can only be marked as paid if it is pending.");
         Status = PaymentStatus.Completed;
         PaidOn = DateTime.UtcNow;
+
+        AddDomainEvent(new PaymentCompleted(Id, SourceId, SourceType));
+    }
+
+    public void MarkAsFailed(string reason)
+    {
+        if (Status != PaymentStatus.Pending)
+            throw new InvalidOperationException("Payment can only be marked as failed if it is pending.");
+        Status = PaymentStatus.Failed;
+
+        AddDomainEvent(new PaymentFailed(Id, SourceId, SourceType, reason));
     }
 
     private Payment() { } // For EF Core
