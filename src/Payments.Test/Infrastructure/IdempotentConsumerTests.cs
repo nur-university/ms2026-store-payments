@@ -25,6 +25,8 @@ public sealed class IdempotentConsumerTests : IDisposable
     {
         public async Task AddAsync(Payment entity) => await db.Payments.AddAsync(entity);
         public Task<Payment?> GetByIdAsync(Guid id, bool readOnly = false) => db.Payments.FirstOrDefaultAsync(p => p.Id == id);
+        public Task<(IReadOnlyList<Payment> Payments, int Total)> GetPendingAsync(int skip, int take) =>
+            throw new NotSupportedException();
         public Task<Payment?> GetBySourceAsync(Guid sourceId, string sourceType) =>
             db.Payments.FirstOrDefaultAsync(p => p.SourceId == sourceId && p.SourceType == sourceType);
     }

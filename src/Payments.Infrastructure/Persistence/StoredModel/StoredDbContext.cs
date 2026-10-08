@@ -17,6 +17,12 @@ internal class StoredDbContext(DbContextOptions<StoredDbContext> options) : DbCo
         modelBuilder.AddOutboxModel<DomainEvent>();
         modelBuilder.AddInboxModel();
 
+        // An invoice number is issued once.
+        modelBuilder.Entity<PaymentStoredModel>()
+            .HasIndex(p => p.InvoiceNumber)
+            .IsUnique()
+            .HasFilter("\"invoiceNumber\" IS NOT NULL");
+
         // One payment per originating order.
         modelBuilder.Entity<PaymentStoredModel>()
             .HasIndex(p => new { p.SourceId, p.SourceType })

@@ -39,7 +39,7 @@ public class CancelPaymentTests
     [Fact]
     public async Task LeavesAlreadyCompletedOrCanceledPaymentsAlone()
     {
-        Payment completed = PaymentFor(p => p.MarkAsPaid());
+        Payment completed = PaymentFor(p => p.PayInCash());
 
         await Consumer().HandleAsync(new OrderPaymentCancellationRequested(_orderId, "late"), CancellationToken.None);
 

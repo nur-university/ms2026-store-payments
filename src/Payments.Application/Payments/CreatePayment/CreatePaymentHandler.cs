@@ -13,7 +13,7 @@ public class CreatePaymentHandler(IPaymentRepository paymentRepository, IUnitOfW
 {
     public async Task<Result<Guid>> Handle(CreatePaymentCommand request, CancellationToken cancellationToken)
     {
-        Payment payment = new (request.Amount, request.SourceId, request.SourceType);
+        Payment payment = new (request.Amount, request.SourceId, request.SourceType, request.CustomerName, request.CustomerDocument);
 
         await paymentRepository.AddAsync(payment);
         await unitOfWork.CommitAsync(cancellationToken);
@@ -29,7 +29,11 @@ public class CreatePaymentHandler(IPaymentRepository paymentRepository, IUnitOfW
             return;
         }
 
-        CreatePaymentCommand command = new(message.TotalAmount, message.OrderId, "orders");
+        CreatePaymentCommand command = new(message.TotalAmount, message.OrderId, "orders")
+        {
+            CustomerName = message.CustomerName,
+            CustomerDocument = message.CustomerDocument
+        };
 
         await Handle(command, cancellationToken);
     }

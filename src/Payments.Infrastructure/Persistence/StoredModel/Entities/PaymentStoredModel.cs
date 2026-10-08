@@ -1,4 +1,4 @@
-﻿using Payments.Domain.Payments;
+using Payments.Domain.Payments;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -38,4 +38,33 @@ public class PaymentStoredModel
     [Required]
     [Column("amount", TypeName = "decimal(18,2)")]
     public double Amount { get; set; }
+
+    [Column("customerName")]
+    [MaxLength(200)]
+    public string? CustomerName { get; set; }
+
+    [Column("customerDocument")]
+    [MaxLength(50)]
+    public string? CustomerDocument { get; set; }
+
+    [Column("method")]
+    [MaxLength(25)]
+    public string? Method { get; set; }
+
+    [Column("reference")]
+    [MaxLength(100)]
+    public string? Reference { get; set; }
+
+    [Column("amountReceived", TypeName = "decimal(18,2)")]
+    public decimal? AmountReceived { get; set; }
+
+    [Column("changeGiven", TypeName = "decimal(18,2)")]
+    public decimal? ChangeGiven { get; set; }
+
+    [Column("collectedBy")]
+    public Guid? CollectedBy { get; set; }
+
+    [Column("invoiceNumber")]
+    [MaxLength(20)]
+    public string? InvoiceNumber { get; set; }
 }

@@ -16,7 +16,6 @@ public sealed class UnitOfWorkTests : IDisposable
 {
     private readonly SqliteConnection _connection = new("DataSource=:memory:");
     private readonly List<INotificationHandler<PaymentCompleted>> _completedHandlers = [];
-    private readonly List<INotificationHandler<PaymentFailed>> _failedHandlers = [];
     private readonly DomainDbContext _dbContext;
     private readonly UnitOfWork _unitOfWork;
     private int _saveCount;
@@ -32,7 +31,6 @@ public sealed class UnitOfWorkTests : IDisposable
         ServiceCollection services = new();
         services.AddMediatR(c => c.RegisterServicesFromAssemblyContaining<UnitOfWorkTests>());
         services.AddSingleton<IEnumerable<INotificationHandler<PaymentCompleted>>>(_completedHandlers);
-        services.AddSingleton<IEnumerable<INotificationHandler<PaymentFailed>>>(_failedHandlers);
         IMediator mediator = services.BuildServiceProvider().GetRequiredService<IMediator>();
 
         _unitOfWork = new UnitOfWork(_dbContext, mediator);
@@ -63,7 +61,7 @@ public sealed class UnitOfWorkTests : IDisposable
     public async Task Commit_PublishesEventsAndSavesOnce()
     {
         Payment payment = TrackedPendingPayment();
-        payment.MarkAsPaid();
+        payment.PayInCash();
         List<Guid> seen = [];
         _completedHandlers.Add(new Handler<PaymentCompleted>(e => { seen.Add(e.PaymentId); return Task.CompletedTask; }));
 
@@ -79,7 +77,7 @@ public sealed class UnitOfWorkTests : IDisposable
     public async Task Commit_CalledFromInsideAHandler_DoesNotSaveEarly()
     {
         Payment payment = TrackedPendingPayment();
-        payment.MarkAsPaid();
+        payment.PayInCash();
         int savesSeenByHandler = -1;
         _completedHandlers.Add(new Handler<PaymentCompleted>(async _ =>
         {
@@ -98,19 +96,21 @@ public sealed class UnitOfWorkTests : IDisposable
     {
         Payment first = TrackedPendingPayment();
         Payment second = TrackedPendingPayment();
-        first.MarkAsPaid();
+        first.PayInCash();
         List<string> order = [];
-        _completedHandlers.Add(new Handler<PaymentCompleted>(_ =>
+        _completedHandlers.Add(new Handler<PaymentCompleted>(e =>
         {
-            order.Add("completed");
-            second.MarkAsFailed("cascade"); // raises a new event while events are being published
+            order.Add(e.PaymentId == first.Id ? "first" : "second");
+            if (e.PaymentId == first.Id)
+            {
+                second.PayInCash(); // raises a new event while events are being published
+            }
             return Task.CompletedTask;
         }));
-        _failedHandlers.Add(new Handler<PaymentFailed>(e => { order.Add("failed:" + e.Reason); return Task.CompletedTask; }));
 
         await _unitOfWork.CommitAsync();
 
-        Assert.Equal(["completed", "failed:cascade"], order);
+        Assert.Equal(["first", "second"], order);
         Assert.Equal(1, _saveCount);
         Assert.Equal(2, PersistedPayments());
     }
@@ -119,7 +119,7 @@ public sealed class UnitOfWorkTests : IDisposable
     public async Task Commit_WhenAHandlerFails_PersistsNothingEvenOnALaterCommit()
     {
         Payment payment = TrackedPendingPayment();
-        payment.MarkAsPaid();
+        payment.PayInCash();
         _completedHandlers.Add(new Handler<PaymentCompleted>(_ => throw new InvalidOperationException("boom")));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => _unitOfWork.CommitAsync());
@@ -135,7 +135,7 @@ public sealed class UnitOfWorkTests : IDisposable
     public async Task Commit_AfterAFailedCommit_WorksNormally()
     {
         Payment broken = TrackedPendingPayment();
-        broken.MarkAsPaid();
+        broken.PayInCash();
         _completedHandlers.Add(new Handler<PaymentCompleted>(_ => throw new InvalidOperationException("boom")));
         await Assert.ThrowsAsync<InvalidOperationException>(() => _unitOfWork.CommitAsync());
         _completedHandlers.Clear();
@@ -150,11 +150,11 @@ public sealed class UnitOfWorkTests : IDisposable
     public async Task Commit_WithAnEventCycle_Throws()
     {
         Payment payment = TrackedPendingPayment();
-        payment.MarkAsPaid();
+        payment.PayInCash();
         // Every PaymentCompleted creates yet another payment that completes: never settles.
         _completedHandlers.Add(new Handler<PaymentCompleted>(_ =>
         {
-            TrackedPendingPayment().MarkAsPaid();
+            TrackedPendingPayment().PayInCash();
             return Task.CompletedTask;
         }));
 

@@ -1,4 +1,4 @@
-﻿using Joseco.DDD.Core.Abstractions;
+using Joseco.DDD.Core.Abstractions;
 using Joseco.Outbox.Contracts.Service;
 using Joseco.Outbox.EFCore;
 using Joseco.Outbox.EFCore.Persistence;
@@ -27,6 +27,7 @@ public static class DatabaseExtensions
         services.AddScoped<IDatabase, StoredDbContext>();
 
         services.AddScoped<IPaymentRepository, PaymentRepository>();
+        services.AddScoped<IInvoiceNumberGenerator, InvoiceNumberGenerator>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         services.AddScoped<IOutboxDatabase<DomainEvent>, UnitOfWork>();

@@ -1,8 +1,13 @@
 using Joseco.DDD.Core.Abstractions;
+using Joseco.DDD.Core.Results;
 using Payments.Domain.Payments.Events;
 
 namespace Payments.Domain.Payments;
 
+/// <summary>
+/// A charge order (orden de cobro): created pending when a sale is ready to be paid, and collected later at the
+/// cashier with cash, a bank transfer or a card terminal (POS). No payment provider is involved.
+/// </summary>
 public class Payment : AggregateRoot
 {
     public DateTime CreatedOn { get; set; }
@@ -14,7 +19,27 @@ public class Payment : AggregateRoot
 
     public decimal Amount { get; set; }
 
-    public Payment(decimal amount, Guid? sourceId, string? sourceType) : base(
+    /// <summary>The customer named on the sales note (walk-in customers have no account).</summary>
+    public string? CustomerName { get; private set; }
+    public string? CustomerDocument { get; private set; }
+
+    public PaymentMethod? Method { get; private set; }
+
+    /// <summary>Transfer number or POS voucher/authorization code; not used for cash.</summary>
+    public string? Reference { get; private set; }
+
+    /// <summary>Cash handed over by the customer (equals <see cref="Amount"/> for the other methods).</summary>
+    public decimal? AmountReceived { get; private set; }
+    public decimal? ChangeGiven { get; private set; }
+
+    /// <summary>The cashier (user id) who collected the payment.</summary>
+    public Guid? CollectedBy { get; private set; }
+
+    /// <summary>Number of the invoice issued when the payment was collected.</summary>
+    public string? InvoiceNumber { get; private set; }
+
+    public Payment(decimal amount, Guid? sourceId, string? sourceType,
+        string? customerName = null, string? customerDocument = null) : base(
         Guid.NewGuid())
     {
         Amount = amount;
@@ -22,18 +47,50 @@ public class Payment : AggregateRoot
         Status = PaymentStatus.Pending;
         SourceId = sourceId;
         SourceType = sourceType;
+        CustomerName = customerName;
+        CustomerDocument = customerDocument;
 
         AddDomainEvent(new PendingPaymentCreated(Id, SourceId, SourceType));
     }
 
-    public void MarkAsPaid()
+    /// <summary>Registers the money received at the cashier and issues the invoice.</summary>
+    /// <param name="amountReceived">Required for cash (it must cover the amount; the change is computed).</param>
+    /// <param name="reference">Required for bank transfers and card payments.</param>
+    public void Collect(PaymentMethod method, string? reference, decimal? amountReceived, Guid collectedBy, string invoiceNumber)
     {
         if (Status != PaymentStatus.Pending)
-            throw new InvalidOperationException("Payment can only be marked as paid if it is pending.");
+            throw new InvalidOperationException("Payment can only be collected if it is pending.");
+
+        switch (method)
+        {
+            case PaymentMethod.Cash:
+                if (amountReceived is null || amountReceived < Amount)
+                    throw new DomainException(PaymentErrors.CashReceivedInsufficient(Amount, amountReceived));
+                AmountReceived = amountReceived;
+                ChangeGiven = amountReceived - Amount;
+                Reference = null;
+                break;
+
+            case PaymentMethod.BankTransfer:
+            case PaymentMethod.Card:
+                if (string.IsNullOrWhiteSpace(reference))
+                    throw new DomainException(PaymentErrors.ReferenceRequired(method));
+                AmountReceived = Amount;
+                ChangeGiven = 0;
+                Reference = reference.Trim();
+                break;
+
+            default:
+                throw new DomainException(PaymentErrors.UnknownMethod());
+        }
+
+        Method = method;
+        CollectedBy = collectedBy;
+        InvoiceNumber = invoiceNumber;
         Status = PaymentStatus.Completed;
         PaidOn = DateTime.UtcNow;
 
-        AddDomainEvent(new PaymentCompleted(Id, SourceId, SourceType));
+        AddDomainEvent(new PaymentCompleted(Id, SourceId, SourceType, invoiceNumber, method.ToString()));
     }
 
     /// <summary>Withdraws a pending payment (for example because its order was canceled); it can no longer be collected.</summary>
@@ -42,15 +99,6 @@ public class Payment : AggregateRoot
         if (Status != PaymentStatus.Pending)
             throw new InvalidOperationException("Payment can only be canceled if it is pending.");
         Status = PaymentStatus.Cancelled;
-    }
-
-    public void MarkAsFailed(string reason)
-    {
-        if (Status != PaymentStatus.Pending)
-            throw new InvalidOperationException("Payment can only be marked as failed if it is pending.");
-        Status = PaymentStatus.Failed;
-
-        AddDomainEvent(new PaymentFailed(Id, SourceId, SourceType, reason));
     }
 
     private Payment() { } // For EF Core

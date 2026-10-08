@@ -98,13 +98,50 @@ namespace Payments.Infrastructure.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("amount");
 
+                    b.Property<decimal?>("AmountReceived")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("amountReceived");
+
+                    b.Property<decimal?>("ChangeGiven")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("changeGiven");
+
+                    b.Property<Guid?>("CollectedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("collectedBy");
+
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("createdOn");
 
+                    b.Property<string>("CustomerDocument")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("customerDocument");
+
+                    b.Property<string>("CustomerName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("customerName");
+
+                    b.Property<string>("InvoiceNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("invoiceNumber");
+
+                    b.Property<string>("Method")
+                        .HasMaxLength(25)
+                        .HasColumnType("character varying(25)")
+                        .HasColumnName("method");
+
                     b.Property<DateTime?>("PaidOn")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("paidOn");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("reference");
 
                     b.Property<Guid?>("SourceId")
                         .HasColumnType("uuid")
@@ -122,6 +159,10 @@ namespace Payments.Infrastructure.Migrations
                         .HasColumnName("status");
 
                     b.HasKey("PaymentId");
+
+                    b.HasIndex("InvoiceNumber")
+                        .IsUnique()
+                        .HasFilter("\"invoiceNumber\" IS NOT NULL");
 
                     b.HasIndex("SourceId", "SourceType")
                         .IsUnique()

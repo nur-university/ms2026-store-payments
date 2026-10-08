@@ -44,10 +44,10 @@ public class ConcurrencyTests
             Payment seenByFirst = await first.Payments.SingleAsync(p => p.Id == payment.Id);
             Payment seenBySecond = await second.Payments.SingleAsync(p => p.Id == payment.Id);
 
-            seenByFirst.MarkAsPaid();
+            seenByFirst.PayInCash();
             await first.SaveChangesAsync();
 
-            seenBySecond.MarkAsFailed("late writer"); // still sees the row as Pending
+            seenBySecond.Cancel(); // still sees the row as Pending
             await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => second.SaveChangesAsync());
         }
         finally
