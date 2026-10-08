@@ -1,4 +1,4 @@
-﻿using Joseco.DDD.Core.Abstractions;
+using Joseco.DDD.Core.Abstractions;
 using Payments.Domain.Payments.Events;
 
 namespace Payments.Domain.Payments;
@@ -34,6 +34,14 @@ public class Payment : AggregateRoot
         PaidOn = DateTime.UtcNow;
 
         AddDomainEvent(new PaymentCompleted(Id, SourceId, SourceType));
+    }
+
+    /// <summary>Withdraws a pending payment (for example because its order was canceled); it can no longer be collected.</summary>
+    public void Cancel()
+    {
+        if (Status != PaymentStatus.Pending)
+            throw new InvalidOperationException("Payment can only be canceled if it is pending.");
+        Status = PaymentStatus.Cancelled;
     }
 
     public void MarkAsFailed(string reason)

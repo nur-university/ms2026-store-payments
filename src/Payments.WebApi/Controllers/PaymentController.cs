@@ -26,7 +26,7 @@ public class PaymentController : ControllerBase
     public async Task<IActionResult> CompleteOrderPayment(Guid orderId)
     {
         Result<Guid> result = await _mediator.Send(new CompletePaymentCommand(orderId, "orders"));
-        return result.IsSuccess ? Ok(result.Value) : NotFound(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : Failure(result.Error);
     }
 
     /// <summary>Rejects the pending payment of an order (stands in for a declined payment).</summary>
@@ -34,6 +34,9 @@ public class PaymentController : ControllerBase
     public async Task<IActionResult> FailOrderPayment(Guid orderId, [FromBody] FailPaymentRequest request)
     {
         Result<Guid> result = await _mediator.Send(new FailPaymentCommand(orderId, "orders", request.Reason));
-        return result.IsSuccess ? Ok(result.Value) : NotFound(result.Error);
+        return result.IsSuccess ? Ok(result.Value) : Failure(result.Error);
     }
+
+    private IActionResult Failure(Error error) =>
+        error.Type == ErrorType.NotFound ? NotFound(error) : Conflict(error);
 }

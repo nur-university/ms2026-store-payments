@@ -22,6 +22,11 @@ internal class CompletePaymentHandler(IPaymentRepository paymentRepository, IUni
             return payment.Id;
         }
 
+        if (payment.Status != PaymentStatus.Pending)
+        {
+            return Result.Failure<Guid>(PaymentErrors.NotPending(payment.Status));
+        }
+
         payment.MarkAsPaid();
         await unitOfWork.CommitAsync(cancellationToken);
 

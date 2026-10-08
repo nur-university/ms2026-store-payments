@@ -48,6 +48,18 @@ public class PaymentTests
     }
 
     [Fact]
+    public void Cancel_WithdrawsAPendingPayment_AndItCanNoLongerBeCollected()
+    {
+        Payment payment = NewPayment();
+
+        payment.Cancel();
+
+        Assert.Equal(PaymentStatus.Cancelled, payment.Status);
+        Assert.Throws<InvalidOperationException>(() => payment.MarkAsPaid());
+        Assert.Throws<InvalidOperationException>(() => payment.Cancel());
+    }
+
+    [Fact]
     public void MarkAsPaid_OrMarkAsFailed_WhenNotPending_Throws()
     {
         Payment payment = NewPayment();

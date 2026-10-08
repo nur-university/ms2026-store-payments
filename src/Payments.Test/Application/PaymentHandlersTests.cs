@@ -66,6 +66,33 @@ public class PaymentHandlersTests
     }
 
     [Fact]
+    public async Task Complete_ACanceledPayment_IsAConflict()
+    {
+        Payment payment = PendingPayment();
+        payment.Cancel();
+        CompletePaymentHandler handler = new(_payments.Object, _unitOfWork.Object);
+
+        Result<Guid> result = await handler.Handle(new CompletePaymentCommand(_orderId, "orders"), CancellationToken.None);
+
+        Assert.Equal(ErrorType.Conflict, result.Error.Type);
+        Assert.Equal(PaymentStatus.Cancelled, payment.Status);
+        VerifySaved(Times.Never());
+    }
+
+    [Fact]
+    public async Task Fail_ACompletedPayment_IsAConflict()
+    {
+        Payment payment = PendingPayment();
+        payment.MarkAsPaid();
+        FailPaymentHandler handler = new(_payments.Object, _unitOfWork.Object);
+
+        Result<Guid> result = await handler.Handle(new FailPaymentCommand(_orderId, "orders", "late"), CancellationToken.None);
+
+        Assert.Equal(ErrorType.Conflict, result.Error.Type);
+        Assert.Equal(PaymentStatus.Completed, payment.Status);
+    }
+
+    [Fact]
     public async Task Fail_PendingPayment_FailsAndSaves()
     {
         Payment payment = PendingPayment();

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Nur.Store2026.Integration.Orders;
+using Payments.Application.Payments.CancelPayment;
 using Payments.Application.Payments.CreatePayment;
 using Payments.Infrastructure.Observability;
 
@@ -27,7 +28,10 @@ public static class BrokerExtensions
         }
 
         services.AddRabbitMqConsumer<OrderReserved, CreatePaymentHandler>("payments-order-reserved");
+        services.AddRabbitMqConsumer<OrderPaymentCancellationRequested, CancelPaymentWhenOrderPaymentCancellationRequested>("payments-order-payment-cancellation-requested");
 
+        services.Decorate<IIntegrationMessageConsumer<OrderPaymentCancellationRequested>, IdempotentConsumer<OrderPaymentCancellationRequested>>();
+        services.Decorate<IIntegrationMessageConsumer<OrderPaymentCancellationRequested>, TracingConsumer<OrderPaymentCancellationRequested>>();
         services.Decorate<IIntegrationMessageConsumer<OrderReserved>, IdempotentConsumer<OrderReserved>>();
         services.Decorate<IIntegrationMessageConsumer<OrderReserved>, TracingConsumer<OrderReserved>>();
 
