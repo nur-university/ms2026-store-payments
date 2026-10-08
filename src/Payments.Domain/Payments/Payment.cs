@@ -53,6 +53,31 @@ public class Payment : AggregateRoot
         AddDomainEvent(new PendingPaymentCreated(Id, SourceId, SourceType));
     }
 
+    /// <summary>
+    /// Checks what the cashier typed without changing anything. The invoice number is only requested after this passes,
+    /// so rejected attempts do not leave gaps in the invoice numbering.
+    /// </summary>
+    /// <exception cref="DomainException">The data does not allow collecting the payment.</exception>
+    public void ValidateCollection(PaymentMethod method, string? reference, decimal? amountReceived)
+    {
+        switch (method)
+        {
+            case PaymentMethod.Cash:
+                if (amountReceived is null || amountReceived < Amount)
+                    throw new DomainException(PaymentErrors.CashReceivedInsufficient(Amount, amountReceived));
+                break;
+
+            case PaymentMethod.BankTransfer:
+            case PaymentMethod.Card:
+                if (string.IsNullOrWhiteSpace(reference))
+                    throw new DomainException(PaymentErrors.ReferenceRequired(method));
+                break;
+
+            default:
+                throw new DomainException(PaymentErrors.UnknownMethod());
+        }
+    }
+
     /// <summary>Registers the money received at the cashier and issues the invoice.</summary>
     /// <param name="amountReceived">Required for cash (it must cover the amount; the change is computed).</param>
     /// <param name="reference">Required for bank transfers and card payments.</param>
@@ -61,27 +86,19 @@ public class Payment : AggregateRoot
         if (Status != PaymentStatus.Pending)
             throw new InvalidOperationException("Payment can only be collected if it is pending.");
 
-        switch (method)
+        ValidateCollection(method, reference, amountReceived);
+
+        if (method == PaymentMethod.Cash)
         {
-            case PaymentMethod.Cash:
-                if (amountReceived is null || amountReceived < Amount)
-                    throw new DomainException(PaymentErrors.CashReceivedInsufficient(Amount, amountReceived));
-                AmountReceived = amountReceived;
-                ChangeGiven = amountReceived - Amount;
-                Reference = null;
-                break;
-
-            case PaymentMethod.BankTransfer:
-            case PaymentMethod.Card:
-                if (string.IsNullOrWhiteSpace(reference))
-                    throw new DomainException(PaymentErrors.ReferenceRequired(method));
-                AmountReceived = Amount;
-                ChangeGiven = 0;
-                Reference = reference.Trim();
-                break;
-
-            default:
-                throw new DomainException(PaymentErrors.UnknownMethod());
+            AmountReceived = amountReceived;
+            ChangeGiven = amountReceived - Amount;
+            Reference = null;
+        }
+        else
+        {
+            AmountReceived = Amount;
+            ChangeGiven = 0;
+            Reference = reference!.Trim();
         }
 
         Method = method;

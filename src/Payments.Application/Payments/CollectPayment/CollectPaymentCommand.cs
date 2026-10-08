@@ -46,13 +46,16 @@ internal class CollectPaymentHandler(
 
         try
         {
-            string invoiceNumber = await invoiceNumbers.NextAsync(cancellationToken);
-            payment.Collect(request.Method, request.Reference, request.AmountReceived, request.CollectedBy, invoiceNumber);
+            // Validate first: an invoice number is only consumed by a payment that is really going to be collected.
+            payment.ValidateCollection(request.Method, request.Reference, request.AmountReceived);
         }
         catch (DomainException ex)
         {
             return Result.Failure<CollectedPayment>(ex.Error);
         }
+
+        string invoiceNumber = await invoiceNumbers.NextAsync(cancellationToken);
+        payment.Collect(request.Method, request.Reference, request.AmountReceived, request.CollectedBy, invoiceNumber);
 
         await unitOfWork.CommitAsync(cancellationToken);
 

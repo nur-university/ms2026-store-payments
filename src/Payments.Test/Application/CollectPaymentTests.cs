@@ -114,6 +114,8 @@ public class CollectPaymentTests
         Assert.Equal("Payment.CashReceivedInsufficient", notEnoughCash.Error.Code);
         Assert.Equal("Payment.ReferenceRequired", noReference.Error.Code);
         VerifySaved(Times.Never());
+        // Rejected attempts must not consume invoice numbers: invoices stay consecutive.
+        _invoices.Verify(i => i.NextAsync(It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
