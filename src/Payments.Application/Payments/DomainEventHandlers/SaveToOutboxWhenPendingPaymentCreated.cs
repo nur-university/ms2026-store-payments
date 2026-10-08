@@ -1,4 +1,4 @@
-﻿using Joseco.DDD.Core.Abstractions;
+using Joseco.DDD.Core.Abstractions;
 using Joseco.Outbox.Contracts.Model;
 using Joseco.Outbox.Contracts.Service;
 using MediatR;
@@ -9,12 +9,10 @@ namespace Payments.Application.Payments.DomainEventHandlers;
 internal class SaveToOutboxWhenPendingPaymentCreated : INotificationHandler<PendingPaymentCreated>
 {
     private readonly IOutboxService<DomainEvent> _outboxDatabase;
-    private readonly IUnitOfWork _unitOfWork;
 
-    public SaveToOutboxWhenPendingPaymentCreated(IOutboxService<DomainEvent> outboxDatabase, IUnitOfWork unitOfWork)
+    public SaveToOutboxWhenPendingPaymentCreated(IOutboxService<DomainEvent> outboxDatabase)
     {
         _outboxDatabase = outboxDatabase;
-        _unitOfWork = unitOfWork;
     }
 
     public async Task Handle(PendingPaymentCreated notification, CancellationToken cancellationToken)
@@ -26,7 +24,5 @@ internal class SaveToOutboxWhenPendingPaymentCreated : INotificationHandler<Pend
         OutboxMessage<DomainEvent> outboxMessage = new(notification);
 
         await _outboxDatabase.AddAsync(outboxMessage);
-
-        await _unitOfWork.CommitAsync(cancellationToken);
     }
 }
