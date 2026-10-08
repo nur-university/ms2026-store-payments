@@ -25,4 +25,8 @@
     <ProjectReference Include="..\Payments.Domain\Payments.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="Payments.Test" />
+  </ItemGroup>
+
 </Project>
