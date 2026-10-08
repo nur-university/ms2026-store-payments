@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Storage;
+using Payments.Infrastructure.Inbox;
+using Microsoft.EntityFrameworkCore.Storage;
 using Microsoft.EntityFrameworkCore;
 using Joseco.DDD.Core.Abstractions;
 using Joseco.Outbox.EFCore.Persistence;
@@ -14,6 +15,13 @@ internal class StoredDbContext(DbContextOptions<StoredDbContext> options) : DbCo
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.AddOutboxModel<DomainEvent>();
+        modelBuilder.AddInboxModel();
+
+        // One payment per originating order.
+        modelBuilder.Entity<PaymentStoredModel>()
+            .HasIndex(p => new { p.SourceId, p.SourceType })
+            .IsUnique()
+            .HasFilter("\"sourceId\" IS NOT NULL");
     }
 
     public void Migrate()

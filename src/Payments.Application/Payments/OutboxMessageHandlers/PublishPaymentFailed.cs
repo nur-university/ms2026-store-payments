@@ -21,7 +21,7 @@ internal class PublishPaymentFailed : INotificationHandler<OutboxMessage<Payment
         if (domainEvent.SourceType == "orders" && domainEvent.SourceId.HasValue && domainEvent.SourceId != Guid.Empty)
         {
             await _externalPublisher.PublishAsync(
-                new Nur.Store2026.Integration.Payments.PaymentFailed(domainEvent.SourceId.Value, domainEvent.Reason));
+                new Nur.Store2026.Integration.Payments.PaymentFailed(domainEvent.SourceId.Value, domainEvent.Reason) { Id = domainEvent.Id });
         }
     }
 }

@@ -21,7 +21,7 @@ internal class PublishPaymentCompleted : INotificationHandler<OutboxMessage<Paym
         if (domainEvent.SourceType == "orders" && domainEvent.SourceId.HasValue && domainEvent.SourceId != Guid.Empty)
         {
             await _externalPublisher.PublishAsync(
-                new Nur.Store2026.Integration.Payments.PaymentCompleted(domainEvent.SourceId.Value));
+                new Nur.Store2026.Integration.Payments.PaymentCompleted(domainEvent.SourceId.Value) { Id = domainEvent.Id });
         }
     }
 }

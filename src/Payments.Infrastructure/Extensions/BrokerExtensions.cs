@@ -1,4 +1,5 @@
-﻿using Joseco.Communication.External.Contracts.Services;
+using Joseco.Communication.External.Contracts.Services;
+using Payments.Infrastructure.Inbox;
 using Joseco.Communication.External.RabbitMQ.Services;
 using Joseco.Communication.External.RabbitMQ;
 using Microsoft.AspNetCore.Hosting;
@@ -27,6 +28,7 @@ public static class BrokerExtensions
 
         services.AddRabbitMqConsumer<OrderReserved, CreatePaymentHandler>("payments-order-reserved");
 
+        services.Decorate<IIntegrationMessageConsumer<OrderReserved>, IdempotentConsumer<OrderReserved>>();
         services.Decorate<IIntegrationMessageConsumer<OrderReserved>, TracingConsumer<OrderReserved>>();
 
         return services;

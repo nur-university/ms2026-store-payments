@@ -1,4 +1,4 @@
-﻿using Joseco.Communication.External.Contracts.Services;
+using Joseco.Communication.External.Contracts.Services;
 using Joseco.Outbox.Contracts.Model;
 using MediatR;
 using Payments.Domain.Payments.Events;
@@ -21,7 +21,7 @@ internal class PublishPendingPaymentCreated : INotificationHandler<OutboxMessage
 
         if(domainEvent.SourceType == "orders" && domainEvent.SourceId != null && domainEvent.SourceId != Guid.Empty)
         {
-            OrderPaymentInProcessRegistered message = new (domainEvent.SourceId.Value);
+            OrderPaymentInProcessRegistered message = new (domainEvent.SourceId.Value) { Id = domainEvent.Id };
             await _externalPublisher.PublishAsync(message);
         }
 

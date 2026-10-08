@@ -67,6 +67,26 @@ namespace Payments.Infrastructure.Migrations
                     b.ToTable("outboxMessage", "outbox");
                 });
 
+            modelBuilder.Entity("Payments.Infrastructure.Inbox.InboxMessage", b =>
+                {
+                    b.Property<Guid>("MessageId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("messageId");
+
+                    b.Property<string>("Consumer")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("consumer");
+
+                    b.Property<DateTime>("ProcessedOn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processedOn");
+
+                    b.HasKey("MessageId", "Consumer");
+
+                    b.ToTable("inboxMessage", (string)null);
+                });
+
             modelBuilder.Entity("Payments.Infrastructure.Persistence.StoredModel.Entities.PaymentStoredModel", b =>
                 {
                     b.Property<Guid>("PaymentId")
@@ -102,6 +122,10 @@ namespace Payments.Infrastructure.Migrations
                         .HasColumnName("status");
 
                     b.HasKey("PaymentId");
+
+                    b.HasIndex("SourceId", "SourceType")
+                        .IsUnique()
+                        .HasFilter("\"sourceId\" IS NOT NULL");
 
                     b.ToTable("payment");
                 });

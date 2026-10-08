@@ -1,4 +1,4 @@
-﻿using Joseco.Communication.External.Contracts.Services;
+using Joseco.Communication.External.Contracts.Services;
 using Joseco.DDD.Core.Abstractions;
 using Joseco.DDD.Core.Results;
 using MediatR;
@@ -23,6 +23,12 @@ public class CreatePaymentHandler(IPaymentRepository paymentRepository, IUnitOfW
 
     public async Task HandleAsync(OrderReserved message, CancellationToken cancellationToken)
     {
+        // A duplicated OrderReserved (broker redelivery or an outbox row published twice) must not create a second payment.
+        if (await paymentRepository.GetBySourceAsync(message.OrderId, "orders") != null)
+        {
+            return;
+        }
+
         CreatePaymentCommand command = new(message.TotalAmount, message.OrderId, "orders");
 
         await Handle(command, cancellationToken);
