@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using Joseco.Outbox.EFCore.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Joseco.Outbox.Contracts.Model;
+using Payments.Infrastructure.Observability;
 
 namespace Payments.Infrastructure.Persistence
 {
@@ -56,7 +57,9 @@ namespace Payments.Infrastructure.Persistence
                     }
                 }
 
+                var businessTransitions = PaymentsMetrics.Capture(_dbContext.ChangeTracker);
                 await _dbContext.SaveChangesAsync(cancellationToken);
+                PaymentsMetrics.Record(businessTransitions);
             }
             catch
             {
