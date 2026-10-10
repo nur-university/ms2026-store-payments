@@ -17,6 +17,12 @@ internal class StoredDbContext(DbContextOptions<StoredDbContext> options) : DbCo
         modelBuilder.AddOutboxModel<DomainEvent>();
         modelBuilder.AddInboxModel();
 
+        modelBuilder.Entity<PaymentLineStoredModel>()
+            .HasOne<PaymentStoredModel>()
+            .WithMany()
+            .HasForeignKey(l => l.PaymentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         // An invoice number is issued once.
         modelBuilder.Entity<PaymentStoredModel>()
             .HasIndex(p => p.InvoiceNumber)

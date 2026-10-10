@@ -15,6 +15,9 @@ public class CreatePaymentCommand : IRequest<Result<Guid>>
     public decimal Amount { get; set; }
     public string? CustomerName { get; set; }
     public string? CustomerDocument { get; set; }
+
+    /// <summary>What is being paid, as it was when the sale was confirmed.</summary>
+    public IReadOnlyList<PaymentLineData> Lines { get; set; } = [];
     public CreatePaymentCommand(decimal amount, Guid? sourceId, string sourceType)
     {
         Amount = amount;
@@ -22,3 +25,5 @@ public class CreatePaymentCommand : IRequest<Result<Guid>>
         SourceType = sourceType;
     }
 }
+
+public record PaymentLineData(Guid ProductId, string ProductName, int Quantity, decimal UnitPrice);

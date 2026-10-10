@@ -29,13 +29,13 @@ internal class PaymentRepository(DomainDbContext context) : IPaymentRepository
         IQueryable<Payment> pending = _context.Payments.AsNoTracking().Where(p => p.Status == PaymentStatus.Pending);
 
         int total = await pending.CountAsync();
-        List<Payment> page = await pending.OrderBy(p => p.CreatedOn).Skip(skip).Take(take).ToListAsync();
+        List<Payment> page = await pending.Include("_lines").OrderBy(p => p.CreatedOn).Skip(skip).Take(take).ToListAsync();
 
         return (page, total);
     }
 
     public Task<Payment?> GetBySourceAsync(Guid sourceId, string sourceType)
     {
-        return _context.Payments.FirstOrDefaultAsync(p => p.SourceId == sourceId && p.SourceType == sourceType);
+        return _context.Payments.Include("_lines").FirstOrDefaultAsync(p => p.SourceId == sourceId && p.SourceType == sourceType);
     }
 }

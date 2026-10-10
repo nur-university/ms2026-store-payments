@@ -5,7 +5,7 @@ using Payments.Domain.Payments;
 
 namespace Payments.Infrastructure.Persistence.DomainModel.Config;
 
-internal class PaymentConfig  : IEntityTypeConfiguration<Payment>
+internal class PaymentConfig : IEntityTypeConfiguration<Payment>, IEntityTypeConfiguration<PaymentLine>
 {
     public void Configure(EntityTypeBuilder<Payment> builder)
     {
@@ -43,6 +43,9 @@ internal class PaymentConfig  : IEntityTypeConfiguration<Payment>
         builder.Property(p => p.CollectedBy).HasColumnName("collectedBy");
         builder.Property(p => p.InvoiceNumber).HasColumnName("invoiceNumber").HasMaxLength(20);
 
+        builder.HasMany(typeof(PaymentLine), "_lines").WithOne().HasForeignKey("PaymentId").OnDelete(DeleteBehavior.Cascade);
+        builder.Ignore(p => p.Lines);
+
         var statusConverter = new ValueConverter<PaymentStatus, string>(
             v => v.ToString(),
             v => (PaymentStatus)Enum.Parse(typeof(PaymentStatus), v));
@@ -51,4 +54,21 @@ internal class PaymentConfig  : IEntityTypeConfiguration<Payment>
             .HasColumnName("status")
             .HasConversion(statusConverter);
     }
+
+    public void Configure(EntityTypeBuilder<PaymentLine> builder)
+    {
+        builder.ToTable("paymentLine");
+        builder.HasKey(l => l.Id);
+
+        builder.Property(l => l.Id).HasColumnName("paymentLineId");
+        builder.Property(l => l.PaymentId).HasColumnName("paymentId");
+        builder.Property(l => l.ProductId).HasColumnName("productId");
+        builder.Property(l => l.ProductName).HasColumnName("productName").HasMaxLength(250);
+        builder.Property(l => l.Quantity).HasColumnName("quantity");
+        builder.Property(l => l.UnitPrice).HasColumnName("unitPrice").HasPrecision(18, 2);
+
+        builder.Ignore(l => l.Subtotal);
+        builder.Ignore("_domainEvents");
+        builder.Ignore(l => l.DomainEvents);
+}
 }

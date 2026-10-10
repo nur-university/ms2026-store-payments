@@ -28,7 +28,7 @@ public sealed class IdempotentConsumerTests : IDisposable
         public Task<(IReadOnlyList<Payment> Payments, int Total)> GetPendingAsync(int skip, int take) =>
             throw new NotSupportedException();
         public Task<Payment?> GetBySourceAsync(Guid sourceId, string sourceType) =>
-            db.Payments.FirstOrDefaultAsync(p => p.SourceId == sourceId && p.SourceType == sourceType);
+            db.Payments.Include("_lines").FirstOrDefaultAsync(p => p.SourceId == sourceId && p.SourceType == sourceType);
     }
 
     public IdempotentConsumerTests()
@@ -63,6 +63,29 @@ public sealed class IdempotentConsumerTests : IDisposable
 
         Assert.Equal(1, Count("payment"));
         Assert.Equal(1, Count("inboxMessage"));
+    }
+
+    [Fact]
+    public async Task OrderReserved_StoresTheLinesOfTheSale()
+    {
+        CreatePaymentHandler handler = new(_repository, _unitOfWork);
+        OrderReserved message = new(Guid.NewGuid(), 14000m)
+        {
+            CustomerName = "Ana Perez",
+            Lines =
+            [
+                new OrderLine(Guid.NewGuid(), "Smart TV", 2, 6000m),
+                new OrderLine(Guid.NewGuid(), "Fridge", 1, 2000m)
+            ]
+        };
+
+        await Consumer(handler).HandleAsync(message, CancellationToken.None);
+
+        Assert.Equal(2, Count("paymentLine"));
+        _dbContext.ChangeTracker.Clear(); // read it back like a later request would
+        Payment stored = await _repository.GetBySourceAsync(message.OrderId, "orders") ?? throw new InvalidOperationException();
+        Assert.Equal(14000m, stored.Lines.Sum(l => l.Subtotal));
+        Assert.Equal("Ana Perez", stored.CustomerName);
     }
 
     [Fact]

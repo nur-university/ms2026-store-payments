@@ -147,6 +147,22 @@ public class CollectPaymentTests
     }
 
     [Fact]
+    public async Task Invoice_ListsTheProductsOfTheSale()
+    {
+        Payment payment = PendingPayment(8000m);
+        payment.AddLine(Guid.NewGuid(), "Smart TV", 1, 6000m);
+        payment.AddLine(Guid.NewGuid(), "Microwave", 2, 1000m);
+        payment.Collect(PaymentMethod.Cash, null, 8000m, _cashier, "F-00000042");
+
+        Result<InvoiceDto> invoice = await new GetInvoiceByOrderHandler(_payments.Object)
+            .Handle(new GetInvoiceByOrderQuery(_orderId), CancellationToken.None);
+
+        Assert.Equal(2, invoice.Value.Lines.Count);
+        Assert.Equal(invoice.Value.Total, invoice.Value.Lines.Sum(l => l.Subtotal));
+        Assert.Contains(invoice.Value.Lines, l => l.ProductName == "Microwave" && l.Quantity == 2 && l.Subtotal == 2000m);
+    }
+
+    [Fact]
     public async Task PendingQueue_IsPaged()
     {
         _payments.Setup(r => r.GetPendingAsync(It.IsAny<int>(), It.IsAny<int>())).ReturnsAsync(([], 0));

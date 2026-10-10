@@ -87,6 +87,42 @@ namespace Payments.Infrastructure.Migrations
                     b.ToTable("inboxMessage", (string)null);
                 });
 
+            modelBuilder.Entity("Payments.Infrastructure.Persistence.StoredModel.Entities.PaymentLineStoredModel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("paymentLineId");
+
+                    b.Property<Guid>("PaymentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("paymentId");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("productId");
+
+                    b.Property<string>("ProductName")
+                        .IsRequired()
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)")
+                        .HasColumnName("productName");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("unitPrice");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentId");
+
+                    b.ToTable("paymentLine");
+                });
+
             modelBuilder.Entity("Payments.Infrastructure.Persistence.StoredModel.Entities.PaymentStoredModel", b =>
                 {
                     b.Property<Guid>("PaymentId")
@@ -169,6 +205,15 @@ namespace Payments.Infrastructure.Migrations
                         .HasFilter("\"sourceId\" IS NOT NULL");
 
                     b.ToTable("payment");
+                });
+
+            modelBuilder.Entity("Payments.Infrastructure.Persistence.StoredModel.Entities.PaymentLineStoredModel", b =>
+                {
+                    b.HasOne("Payments.Infrastructure.Persistence.StoredModel.Entities.PaymentStoredModel", null)
+                        .WithMany()
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

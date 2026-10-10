@@ -15,6 +15,11 @@ public class CreatePaymentHandler(IPaymentRepository paymentRepository, IUnitOfW
     {
         Payment payment = new (request.Amount, request.SourceId, request.SourceType, request.CustomerName, request.CustomerDocument);
 
+        foreach (PaymentLineData line in request.Lines)
+        {
+            payment.AddLine(line.ProductId, line.ProductName, line.Quantity, line.UnitPrice);
+        }
+
         await paymentRepository.AddAsync(payment);
         await unitOfWork.CommitAsync(cancellationToken);
 
@@ -32,7 +37,10 @@ public class CreatePaymentHandler(IPaymentRepository paymentRepository, IUnitOfW
         CreatePaymentCommand command = new(message.TotalAmount, message.OrderId, "orders")
         {
             CustomerName = message.CustomerName,
-            CustomerDocument = message.CustomerDocument
+            CustomerDocument = message.CustomerDocument,
+            Lines = message.Lines?
+                .Select(l => new PaymentLineData(l.ProductId, l.ProductName, l.Quantity, l.UnitPrice))
+                .ToList() ?? []
         };
 
         await Handle(command, cancellationToken);

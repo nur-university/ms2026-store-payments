@@ -91,6 +91,29 @@ public class PaymentTests
     }
 
     [Fact]
+    public void Lines_DescribeWhatTheCustomerPays()
+    {
+        Payment payment = NewPayment(14000m);
+        Guid tv = Guid.NewGuid();
+
+        payment.AddLine(tv, "Smart TV", 2, 6000m);
+        payment.AddLine(Guid.NewGuid(), "Fridge", 1, 2000m);
+
+        Assert.Equal(2, payment.Lines.Count);
+        Assert.Equal(12000m, payment.Lines.First(l => l.ProductId == tv).Subtotal);
+        Assert.Equal(14000m, payment.Lines.Sum(l => l.Subtotal));
+    }
+
+    [Fact]
+    public void Lines_CannotBeAddedOnceThePaymentWasCollected()
+    {
+        Payment payment = NewPayment();
+        payment.PayInCash();
+
+        Assert.Throws<InvalidOperationException>(() => payment.AddLine(Guid.NewGuid(), "Late line", 1, 10m));
+    }
+
+    [Fact]
     public void Cancel_WithdrawsAPendingPayment_AndItCanNoLongerBeCollected()
     {
         Payment payment = NewPayment();

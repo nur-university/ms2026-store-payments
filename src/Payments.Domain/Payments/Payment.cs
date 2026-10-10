@@ -38,6 +38,19 @@ public class Payment : AggregateRoot
     /// <summary>Number of the invoice issued when the payment was collected.</summary>
     public string? InvoiceNumber { get; private set; }
 
+    private readonly List<PaymentLine> _lines = [];
+
+    /// <summary>The products being paid. Charge orders created before the detail was kept have none.</summary>
+    public IReadOnlyCollection<PaymentLine> Lines => _lines;
+
+    public void AddLine(Guid productId, string productName, int quantity, decimal unitPrice)
+    {
+        if (Status != PaymentStatus.Pending)
+            throw new InvalidOperationException("Lines can only be added to a pending payment.");
+
+        _lines.Add(new PaymentLine(Id, productId, productName, quantity, unitPrice));
+    }
+
     public Payment(decimal amount, Guid? sourceId, string? sourceType,
         string? customerName = null, string? customerDocument = null) : base(
         Guid.NewGuid())
